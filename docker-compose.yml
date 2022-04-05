@@ -1,0 +1,63 @@
+version: "3.8"
+services:
+    db:
+        image: mysql:8
+        container_name: db_docker_${APP_NAME}
+        volumes:
+            - test-db-data:/var/lib/mysql
+            - ./docker/mysql:/root
+        environment:
+            MYSQL_USER: ${APP_NAME}
+            MYSQL_PASSWORD: ${APP_NAME}
+            MYSQL_DATABASE: ${APP_NAME}
+            MYSQL_RANDOM_ROOT_PASSWORD: 'yes'
+        networks:
+            - dev
+
+    phpmyadmin:
+        image: phpmyadmin
+        container_name: phpmyadmin_docker_${APP_NAME}
+        depends_on:
+            - db
+        ports:
+            - "8081:80"
+        environment:
+            PMA_HOST: db
+        networks:
+            - dev
+
+    maildev:
+        image: maildev/maildev
+        container_name: maildev_docker_${APP_NAME}
+        command: bin/maildev --web 80 --smtp 25 --hide-extensions STARTTLS
+        ports:
+            - "8082:80"
+        networks:
+            - dev
+
+    www:
+        build: docker/php
+        container_name: www_docker_${APP_NAME}
+        ports:
+            - "8080:80"
+        volumes:
+            - ./docker/php/vhosts:/etc/apache2/sites-enabled
+            - ./app:/var/www
+        networks:
+            - dev
+
+    gotenberg:
+        image: gotenberg/gotenberg:latest
+        container_name: gotenberg_docker_${APP_NAME}
+        #restart: always
+        networks:
+            - dev
+        ports:
+            - "8083:3000"
+
+
+networks:
+    dev:
+
+volumes:
+    test-db-data:
